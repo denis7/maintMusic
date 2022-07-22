@@ -1,0 +1,228 @@
+using System;
+using System.Net;
+using System.Threading;
+using System.Net.Http;
+
+using System.Collections.Generic;
+using System.Text.Json;
+using System.IO;
+using System.IO.Compression;
+
+using System.Security.Cryptography;
+
+
+namespace ConsoleApp1
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+
+          //  CreateRandomCreateDatesOnFiles();
+           zipFilePiecesBySize();
+
+            // findScienceMags();
+
+
+        }
+
+        static long sumUpTotalSizeOfCurrentFiles(FileInfo fileInfo, long currentZipFileSize)
+        {
+            currentZipFileSize = currentZipFileSize + fileInfo.Length;
+            return currentZipFileSize;
+
+        }
+
+        static ZipArchive  CreateNewZip(int ZipFileCounter)
+        {
+            string zipPath = $"C:\\temp\\DenMusic{ZipFileCounter.ToString().PadLeft(2,'0')}.zip";
+            ZipArchive archive = ZipFile.Open(zipPath, ZipArchiveMode.Create);
+            return archive;
+
+        }
+
+        static bool IsTotalSizeHigherThanMax(long currentZipFileSize, long nextFileSize)
+        {
+            long MaxZipFileSize = 490 * 1024 * 1024;
+
+            // MaxZipFileSize = 20 *1024 * 1024;
+            nextFileSize = 0;//don't have worry about this file after all
+
+            if (currentZipFileSize + nextFileSize > MaxZipFileSize)
+            {
+                return true;
+            }
+
+            return false;
+
+
+        }
+
+
+        private static void CreateRandomCreateDatesOnFiles()
+        {
+
+            var randomStart = new Random();
+            DateTime endDate = new DateTime(2000,12,28);
+            DateTime startDate = new DateTime(1990, 3, 3);
+            TimeSpan timeSpan = endDate - startDate; 
+
+            string inputDirectory = @"C:\Users\chien\Music\DMixTape";
+            string[] fileEntries = Directory.GetFiles(inputDirectory);
+
+
+            int fileProcessCount=0;
+
+            foreach (string fileEntry in fileEntries)
+            {
+                TimeSpan newSpan = new TimeSpan(0, randomStart.Next(0, (int)timeSpan.TotalMinutes), 0);
+                DateTime newDate = startDate + newSpan;
+
+
+                 FileSystemInfo fsi = new FileInfo(fileEntry);
+                fsi.CreationTime = DateTime.Now;
+
+
+                File.SetCreationTime(fileEntry, newDate); 
+                File.SetLastWriteTime(fileEntry, newDate);
+                File.SetLastAccessTime(fileEntry, newDate);
+
+                fileProcessCount++;
+
+
+            }
+            System.Diagnostics.Debug.WriteLine(fileProcessCount);
+         
+        }
+
+        private static long getNextFileSizeInArray(string nextfileEntry)
+        {
+            FileInfo fileInfo = new FileInfo(nextfileEntry);
+            var zebytes = fileInfo.Length;
+            return zebytes;
+        }
+
+        private static void zipFilePiecesBySize()
+        {                      
+            int ZipNameFileCounter = 0;
+            long currentZipFileSize = 0;           
+
+            string inputDirectory = @"C:\Users\chien\Music\DMixTape";
+            //inputDirectory = @"C:\Users\chien\Music\Test";
+
+            ZipArchive archive;
+
+
+            string[] fileEntries = Directory.GetFiles(inputDirectory);
+            //int totalNumberOfFiles= fileEntries.Length;
+
+            ZipNameFileCounter = 1;
+            archive=CreateNewZip(ZipNameFileCounter);
+
+            int fileNumberOfFileEntries = 0;
+            foreach (string fileEntry in fileEntries)
+            {
+                fileNumberOfFileEntries++; 
+
+
+                FileInfo fileInfo = new FileInfo(fileEntry);
+                var zebytes = fileInfo.Length;
+
+                string fileNameWithoutPath = fileInfo.Name;
+
+
+                currentZipFileSize=sumUpTotalSizeOfCurrentFiles(fileInfo, currentZipFileSize);
+
+                long fileSizeAfterCurrentFile = 0;
+                string nextfileEntry = "";
+                if (fileNumberOfFileEntries < fileEntries.Length)
+                {
+                    nextfileEntry = fileEntries[fileNumberOfFileEntries];
+                    fileSizeAfterCurrentFile = getNextFileSizeInArray(nextfileEntry);
+                }
+                              
+
+                bool IsZipGettingTooBig=IsTotalSizeHigherThanMax(currentZipFileSize, fileSizeAfterCurrentFile);
+
+                string logstring1 = $"currentZipFileSize {currentZipFileSize / 1024.0 / 1024} IsZipGettingTooBig {IsZipGettingTooBig} #{ZipNameFileCounter} ";
+                string logstring2 = $"fileSizeAfterCurrentFile {fileSizeAfterCurrentFile / 1024 / 1024.0} c {fileEntry} n {nextfileEntry} \n";
+
+                File.AppendAllText(@"C:\temp\log.txt", logstring1 + logstring2  );
+
+                if (IsZipGettingTooBig)
+                {
+                    archive.Dispose();
+                    currentZipFileSize = fileInfo.Length;
+                    ZipNameFileCounter++;
+                    archive = CreateNewZip(ZipNameFileCounter);
+                }
+
+               archive.CreateEntryFromFile(fileEntry, fileNameWithoutPath);
+                //create New Zip
+
+
+            }
+
+             if (archive != null)
+            {
+                archive.Dispose();
+            }
+            
+
+            Console.ReadLine();
+
+
+
+        }
+
+
+        private static async void findScienceMags()
+        {
+            WebClient wclient = new WebClient();
+            wclient.Headers.Add("method", "GET");
+
+
+
+
+            string pageContent = wclient.DownloadString(UrlOfPage);
+
+            //HtmlDocument pagedoc = new HtmlDocument();
+            //pagedoc.LoadHtml(pageContent);
+            JsonDocument magIndex = JsonDocument.Parse(pageContent);
+            JsonElement root = magIndex.RootElement;
+            var mags = root.EnumerateArray();
+
+
+
+
+            foreach (var mag in mags)
+            {
+                string? id = mag.GetProperty("id").GetString();
+                string? name = mag.GetProperty("name").GetString();
+
+                HttpClient hclient = new HttpClient();
+                hclient.DefaultRequestHeaders.Add("method", "GET");
+
+
+            }
+
+
+
+        }
+
+
+        void createHashOfFile()
+        {
+            using (var md5 = MD5.Create())
+            {
+                //using (var stream = File.OpenRead(filename))
+                //{
+                //    return md5.ComputeHash(stream);
+                //}
+            }
+        }
+
+
+    }
+
+}
